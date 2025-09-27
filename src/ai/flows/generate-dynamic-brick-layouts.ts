@@ -63,7 +63,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateBrickLayoutOutputSchema},
   prompt: `You are a game designer specializing in level design for an Arkanoid-style game called PhysikBreak. 
 You will generate a brick layout for a specific level, considering the game's dimensions, brick sizes, and available colors.
-The layout should be challenging and engaging, with a variety of brick arrangements.
+The layout should be challenging and engaging, with a variety of brick arrangements. As the level increases, the difficulty should increase by including bricks with higher strength.
 
 Level: {{{level}}}
 Game Width: {{{gameWidth}}}px
@@ -72,8 +72,11 @@ Brick Width: {{{brickWidth}}}px
 Brick Height: {{{brickHeight}}}px
 Brick Colors: {{{brickColors}}}
 
-Create an array of brick objects with x, y, width, height, color and strength properties. Vary brick strength for added complexity.
-Ensure that the bricks fit within the game's boundaries.
+Create an array of brick objects with x, y, width, height, color and strength properties. 
+- For level 1, all bricks should have a strength of 1.
+- For levels 2-5, introduce some bricks with strength 2.
+- For levels 6 and above, introduce bricks with strength up to 3 or even 4, and make the layouts more complex.
+Ensure that the bricks fit within the game's boundaries. The highest y-coordinate should not exceed gameHeight.
 
 Output the brick layout as a JSON array of brick objects:
 {{#each bricks}}

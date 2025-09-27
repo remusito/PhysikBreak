@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "game-background",
+      "description": "A dynamic, abstract background image for the game, suggesting space or a high-tech environment.",
+      "imageUrl": "https://images.unsplash.com/photo-1618601426176-a8fdf4d0a6dd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzcGFjZSUyMGFic3RyYWN0fGVufDB8fHx8MTc1ODk4ODI3OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "space abstract"
+    }
+  ]
 }
