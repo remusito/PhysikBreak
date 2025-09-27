@@ -287,7 +287,7 @@ const PhysikBreakGame = () => {
   
   return (
     <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
-        <div style={{width: dimensions.width, height: dimensions.height}} className="relative bg-background shadow-2xl">
+        <div style={{width: dimensions.width, height: dimensions.height}} className="relative bg-transparent shadow-2xl">
             <canvas
                 ref={canvasRef}
                 width={dimensions.width}
