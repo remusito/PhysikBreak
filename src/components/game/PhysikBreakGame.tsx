@@ -33,19 +33,19 @@ const PhysikBreakGame = () => {
   const [floatingScores, setFloatingScores] = useState<FloatingScore[]>([]);
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
 
-  const paddleWidthRef = useRef(dimensions.width / 5);
+  const paddleWidthRef = useRef(dimensions.width / 6);
   const ballSpeedRef = useRef(BASE_BALL_SPEED);
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
-    paddleWidthRef.current = dimensions.width / 5;
-    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 120);
+    paddleWidthRef.current = dimensions.width / 6;
+    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 150);
 
     const newPaddle = {
       width: paddleWidthRef.current,
       height: 20,
       x: (dimensions.width - paddleWidthRef.current) / 2,
-      y: dimensions.height - 30,
+      y: dimensions.height - 80,
       isSticky: false,
       isFrozen: false,
     };
@@ -96,25 +96,7 @@ const PhysikBreakGame = () => {
     const handleResize = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        // Use aspect ratio to fit the game nicely on mobile and desktop
-        const idealRatio = 9 / 16;
-        let newWidth, newHeight;
-
-        if (width / height > idealRatio) {
-            // Wider than ideal (desktop), so height is the limiter
-            newHeight = height;
-            newWidth = height * idealRatio;
-        } else {
-            // Taller than ideal (mobile), so width is the limiter
-            newWidth = width;
-            newHeight = width / idealRatio;
-        }
-
-        // Ensure it doesn't exceed the container bounds
-        newWidth = Math.min(newWidth, width);
-        newHeight = Math.min(newHeight, height);
-
-        setDimensions({ width: newWidth, height: newHeight });
+        setDimensions({ width, height });
       }
     };
     handleResize();
