@@ -437,22 +437,69 @@ const PhysikBreakGame = () => {
     // Draw power-ups
     powerUps.forEach(p => {
         const isPowerDown = p.type === 'PADDLE_SHRINK' || p.type === 'PADDLE_FREEZE';
+        const centerX = p.x + p.width / 2;
+        const centerY = p.y + p.height / 2;
+
         ctx.fillStyle = isPowerDown ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, p.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = isPowerDown ? 'hsl(var(--destructive-foreground))' : 'hsl(var(--primary-foreground))';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
         
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-        ctx.fillStyle = isPowerDown ? 'hsl(var(--destructive-foreground))' : 'hsl(var(--primary-foreground))';
-        ctx.font = 'bold 12px "Space Grotesk"';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        let powerUpText = '';
         switch(p.type) {
-            case 'PADDLE_EXPAND': powerUpText = 'E'; break;
-            case 'STICKY_PADDLE': powerUpText = 'S'; break;
-            case 'FAST_BALL': powerUpText = 'F'; break;
-            case 'PADDLE_SHRINK': powerUpText = 'P'; break;
-            case 'PADDLE_FREEZE': powerUpText = 'ICE'; break;
+            case 'PADDLE_EXPAND':
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX + 5, centerY);
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX - 8, centerY - 3);
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX - 8, centerY + 3);
+                ctx.moveTo(centerX + 5, centerY);
+                ctx.lineTo(centerX + 8, centerY - 3);
+                ctx.moveTo(centerX + 5, centerY);
+                ctx.lineTo(centerX + 8, centerY + 3);
+                break;
+            case 'STICKY_PADDLE':
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'hsl(var(--primary-foreground))';
+                ctx.fill();
+                break;
+            case 'FAST_BALL':
+                ctx.moveTo(centerX, centerY - 5);
+                ctx.lineTo(centerX, centerY + 5);
+                ctx.lineTo(centerX - 4, centerY + 1);
+                ctx.moveTo(centerX, centerY - 5);
+                ctx.lineTo(centerX + 4, centerY + 1);
+                break;
+            case 'PADDLE_SHRINK':
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX + 5, centerY);
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX - 2, centerY - 3);
+                ctx.moveTo(centerX - 5, centerY);
+                ctx.lineTo(centerX - 2, centerY + 3);
+                ctx.moveTo(centerX + 5, centerY);
+                ctx.lineTo(centerX + 2, centerY - 3);
+                ctx.moveTo(centerX + 5, centerY);
+                ctx.lineTo(centerX + 2, centerY + 3);
+                break;
+            case 'PADDLE_FREEZE': // Snowflake
+                 for (let i = 0; i < 6; i++) {
+                    const angle = (i * 60) * Math.PI / 180;
+                    const x1 = centerX + Math.cos(angle) * 3;
+                    const y1 = centerY + Math.sin(angle) * 3;
+                    const x2 = centerX + Math.cos(angle) * 7;
+                    const y2 = centerY + Math.sin(angle) * 7;
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                }
+                break;
         }
-        ctx.fillText(powerUpText, p.x + p.width / 2, p.y + p.height / 2);
+        ctx.stroke();
     });
 
   }, [ball, paddle, bricks, particles, floatingScores, powerUps, dimensions]);
