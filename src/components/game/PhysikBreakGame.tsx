@@ -39,7 +39,7 @@ const PhysikBreakGame = () => {
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
     paddleWidthRef.current = dimensions.width / 5;
-    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 100);
+    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 120);
 
     const newPaddle = {
       width: paddleWidthRef.current,
@@ -96,9 +96,24 @@ const PhysikBreakGame = () => {
     const handleResize = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        const aspectRatio = 16 / 9;
-        const newWidth = Math.min(width, height * aspectRatio);
-        const newHeight = Math.min(height, width / aspectRatio);
+        // Use aspect ratio to fit the game nicely on mobile and desktop
+        const idealRatio = 9 / 16;
+        let newWidth, newHeight;
+
+        if (width / height > idealRatio) {
+            // Wider than ideal (desktop), so height is the limiter
+            newHeight = height;
+            newWidth = height * idealRatio;
+        } else {
+            // Taller than ideal (mobile), so width is the limiter
+            newWidth = width;
+            newHeight = width / idealRatio;
+        }
+
+        // Ensure it doesn't exceed the container bounds
+        newWidth = Math.min(newWidth, width);
+        newHeight = Math.min(newHeight, height);
+
         setDimensions({ width: newWidth, height: newHeight });
       }
     };
@@ -108,20 +123,29 @@ const PhysikBreakGame = () => {
   }, []);
 
   useEffect(() => {
-    loadLevel(level);
+    if(dimensions.width > 0){
+      loadLevel(level);
+    }
   }, [level, dimensions.width]);
 
   const handleInteraction = (clientX: number) => {
     if (gameState !== 'PLAYING' && gameState !== 'START_SCREEN' || !containerRef.current || paddle.isFrozen) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const newPaddleX = clientX - rect.left - paddle.width / 2;
+    
+    // Adjust for the game canvas's position within the container
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const canvasRect = canvasRef.current!.getBoundingClientRect();
+    const offsetX = (containerRect.width - canvasRect.width) / 2;
+
+    const relativeX = clientX - containerRect.left - offsetX;
+
+    const newPaddleX = relativeX - paddle.width / 2;
     setPaddle(p => ({
       ...p,
       x: Math.max(0, Math.min(newPaddleX, dimensions.width - p.width)),
     }));
 
     if (ball.isStuck) {
-        setBall(b => ({ ...b, x: clientX - rect.left }));
+        setBall(b => ({ ...b, x: relativeX }));
     }
   };
 
@@ -136,14 +160,15 @@ const PhysikBreakGame = () => {
         }
     };
 
+    const currentRef = containerRef.current;
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('touchmove', touchHandler);
-    containerRef.current?.addEventListener('click', clickHandler);
+    currentRef?.addEventListener('click', clickHandler);
     
     return () => {
       window.removeEventListener('mousemove', moveHandler);
       window.removeEventListener('touchmove', touchHandler);
-      containerRef.current?.removeEventListener('click', clickHandler);
+      currentRef?.removeEventListener('click', clickHandler);
     };
   }, [gameState, paddle.width, dimensions.width, ball.isStuck, paddle.isFrozen]);
   
@@ -543,7 +568,7 @@ const PhysikBreakGame = () => {
   };
   
   return (
-    <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
+    <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center p-2 sm:p-4 md:p-8">
         <div style={{width: dimensions.width, height: dimensions.height}} className="relative shadow-2xl bg-transparent">
             <canvas
                 ref={canvasRef}
@@ -567,5 +592,3 @@ const PhysikBreakGame = () => {
 };
 
 export default PhysikBreakGame;
-
-    
