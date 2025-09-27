@@ -6,7 +6,7 @@ export default function Home() {
   const backgroundImage = PlaceHolderImages.find(p => p.id === 'game-background');
   
   return (
-    <main className="relative flex h-screen w-screen flex-col items-center justify-center bg-background overflow-hidden">
+    <main className="relative flex h-[100svh] w-screen flex-col items-center justify-center bg-background overflow-hidden">
         {backgroundImage && (
             <Image
                 src={backgroundImage.imageUrl}

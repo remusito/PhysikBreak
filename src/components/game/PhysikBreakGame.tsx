@@ -38,21 +38,25 @@ const PhysikBreakGame = () => {
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
-    paddleWidthRef.current = dimensions.width / 6;
-    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 150);
+    
+    let baseWidth = dimensions.width;
+    let baseHeight = dimensions.height;
+
+    paddleWidthRef.current = baseWidth / 6;
+    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, baseWidth / 150);
 
     const newPaddle = {
       width: paddleWidthRef.current,
       height: 20,
-      x: (dimensions.width - paddleWidthRef.current) / 2,
-      y: dimensions.height - 80,
+      x: (baseWidth - paddleWidthRef.current) / 2,
+      y: baseHeight - 120, // Move paddle up
       isSticky: false,
       isFrozen: false,
     };
     setPaddle(newPaddle);
     setBall({
       radius: 10,
-      x: dimensions.width / 2,
+      x: baseWidth / 2,
       y: newPaddle.y - 20,
       speed: ballSpeedRef.current,
       vx: 0,
@@ -108,7 +112,7 @@ const PhysikBreakGame = () => {
     if(dimensions.width > 0){
       loadLevel(level);
     }
-  }, [level, dimensions.width]);
+  }, [level, dimensions.width, loadLevel]);
 
   const handleInteraction = (clientX: number) => {
     if (gameState !== 'PLAYING' && gameState !== 'START_SCREEN' || !containerRef.current || paddle.isFrozen) return;
@@ -550,7 +554,7 @@ const PhysikBreakGame = () => {
   };
   
   return (
-    <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center p-2 sm:p-4 md:p-8">
+    <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
         <div style={{width: dimensions.width, height: dimensions.height}} className="relative shadow-2xl bg-transparent">
             <canvas
                 ref={canvasRef}
