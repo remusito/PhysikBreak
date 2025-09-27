@@ -5,12 +5,13 @@ import { getBrickLayout } from '@/app/actions';
 import type { Ball, Paddle, Brick, GameState, Particle, FloatingScore, PowerUp, PowerUpType } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import GameUI from './GameUI';
+import { cn } from '@/lib/utils';
 
 const PADDLE_SENSITIVITY = 1.5;
 const INITIAL_LIVES = 3;
-const BALL_SPEED = 5;
+const BASE_BALL_SPEED = 5;
 const POWER_UP_SPEED = 2;
-const POWER_UP_CHANCE = 0.2; // 20% chance
+const POWER_UP_CHANCE = 0.3; // 30% chance
 
 const PhysikBreakGame = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,23 +34,27 @@ const PhysikBreakGame = () => {
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
 
   const paddleWidthRef = useRef(dimensions.width / 5);
+  const ballSpeedRef = useRef(BASE_BALL_SPEED);
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
     paddleWidthRef.current = dimensions.width / 5;
+    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, dimensions.width / 100);
+
     const newPaddle = {
       width: paddleWidthRef.current,
       height: 20,
       x: (dimensions.width - paddleWidthRef.current) / 2,
       y: dimensions.height - 30,
       isSticky: false,
+      isFrozen: false,
     };
     setPaddle(newPaddle);
     setBall({
       radius: 10,
       x: dimensions.width / 2,
       y: newPaddle.y - 20,
-      speed: Math.min(BALL_SPEED, dimensions.width / 100),
+      speed: ballSpeedRef.current,
       vx: 0,
       vy: 0,
       isStuck: true,
@@ -61,7 +66,7 @@ const PhysikBreakGame = () => {
         setBall(prev => ({
             ...prev,
             isStuck: false,
-            vx: (Math.random() - 0.5) * 2,
+            vx: (Math.random() - 0.5) * 2 * (prev.speed / ballSpeedRef.current),
             vy: -prev.speed
         }));
     }
@@ -107,7 +112,7 @@ const PhysikBreakGame = () => {
   }, [level, dimensions.width]);
 
   const handleInteraction = (clientX: number) => {
-    if (gameState !== 'PLAYING' && gameState !== 'START_SCREEN' || !containerRef.current) return;
+    if (gameState !== 'PLAYING' && gameState !== 'START_SCREEN' || !containerRef.current || paddle.isFrozen) return;
     const rect = containerRef.current.getBoundingClientRect();
     const newPaddleX = clientX - rect.left - paddle.width / 2;
     setPaddle(p => ({
@@ -140,7 +145,7 @@ const PhysikBreakGame = () => {
       window.removeEventListener('touchmove', touchHandler);
       containerRef.current?.removeEventListener('click', clickHandler);
     };
-  }, [gameState, paddle.width, dimensions.width, ball.isStuck]);
+  }, [gameState, paddle.width, dimensions.width, ball.isStuck, paddle.isFrozen]);
   
   const createExplosion = (brick: Brick) => {
     const newParticles: Particle[] = [];
@@ -169,7 +174,7 @@ const PhysikBreakGame = () => {
 
   const activatePowerUp = (type: PowerUpType) => {
     if (type === 'PADDLE_EXPAND') {
-        paddleWidthRef.current *= 1.5;
+        paddleWidthRef.current = Math.min(paddleWidthRef.current * 1.5, dimensions.width * 0.8);
         setPaddle(p => ({...p, width: paddleWidthRef.current}));
         setTimeout(() => {
             paddleWidthRef.current /= 1.5;
@@ -180,13 +185,32 @@ const PhysikBreakGame = () => {
         setTimeout(() => {
             setPaddle(p => ({...p, isSticky: false}));
         }, 15000)
+    } else if (type === 'FAST_BALL') {
+        ballSpeedRef.current *= 1.5;
+        setBall(b => ({...b, speed: ballSpeedRef.current}));
+        setTimeout(() => {
+            ballSpeedRef.current /= 1.5;
+            setBall(b => ({...b, speed: ballSpeedRef.current}));
+        }, 10000);
+    } else if (type === 'PADDLE_SHRINK') {
+        paddleWidthRef.current *= 0.5;
+        setPaddle(p => ({...p, width: paddleWidthRef.current}));
+        setTimeout(() => {
+            paddleWidthRef.current /= 0.5;
+            setPaddle(p => ({...p, width: paddleWidthRef.current}));
+        }, 10000);
+    } else if (type === 'PADDLE_FREEZE') {
+        setPaddle(p => ({...p, isFrozen: true}));
+        setTimeout(() => {
+            setPaddle(p => ({...p, isFrozen: false}));
+        }, 3000)
     }
   }
 
   const createPowerUp = (x: number, y: number) => {
     if (Math.random() > POWER_UP_CHANCE) return;
     
-    const powerUpTypes: PowerUpType[] = ['PADDLE_EXPAND', 'STICKY_PADDLE'];
+    const powerUpTypes: PowerUpType[] = ['PADDLE_EXPAND', 'STICKY_PADDLE', 'FAST_BALL', 'PADDLE_SHRINK', 'PADDLE_FREEZE'];
     const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
     
     setPowerUps(prev => [...prev, {
@@ -204,7 +228,15 @@ const PhysikBreakGame = () => {
 
     // Ball movement
     if (!ball.isStuck) {
-        setBall(b => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }));
+        const currentSpeed = ballSpeedRef.current;
+        const currentVelocityMagnitude = Math.sqrt(ball.vx**2 + ball.vy**2);
+        // Normalize and apply current speed, preserving direction
+        if (currentVelocityMagnitude > 0) {
+            const factor = currentSpeed / currentVelocityMagnitude;
+            setBall(b => ({ ...b, x: b.x + b.vx * factor, y: b.y + b.vy * factor }));
+        } else {
+             setBall(b => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }));
+        }
     }
 
     setParticles(particles =>
@@ -229,7 +261,8 @@ const PhysikBreakGame = () => {
     setPowerUps(prev => prev.map(p => ({...p, y: p.y + p.vy})).filter(p => p.y < dimensions.height));
 
     setBall(b => {
-      let { x, y, vx, vy, radius, speed, isStuck } = b;
+      let { x, y, vx, vy, radius, isStuck } = b;
+      let speed = ballSpeedRef.current;
 
       // Wall collision
       if (x + radius > dimensions.width || x - radius < 0) vx = -vx;
@@ -245,7 +278,7 @@ const PhysikBreakGame = () => {
           resetBallAndPaddle();
           setGameState('START_SCREEN');
         }
-        return { ...b, x, y, vx, vy, isStuck };
+        return { ...b, x, y, vx, vy, speed, isStuck };
       }
 
       // Paddle collision
@@ -270,8 +303,18 @@ const PhysikBreakGame = () => {
         const newBricks = [...prevBricks];
         for (let i = 0; i < newBricks.length; i++) {
           const brick = newBricks[i];
-          if (!isStuck && x > brick.x && x < brick.x + brick.width && y > brick.y && y < brick.y + brick.height) {
-            vy = -vy;
+          if (!isStuck && x + radius > brick.x && x - radius < brick.x + brick.width && y + radius > brick.y && y - radius < brick.y + brick.height) {
+            
+            // simple collision detection, checking which side we hit
+            const overlapX = (x < brick.x + brick.width / 2) ? (x + radius - brick.x) : (brick.x + brick.width - (x - radius));
+            const overlapY = (y < brick.y + brick.height / 2) ? (y + radius - brick.y) : (brick.y + brick.height - (y - radius));
+
+            if (overlapX < overlapY) {
+                vx = -vx;
+            } else {
+                vy = -vy;
+            }
+            
             brick.strength -= 1;
             const points = 10;
             setScore(s => s + points);
@@ -282,7 +325,7 @@ const PhysikBreakGame = () => {
               createExplosion(brick);
               createPowerUp(brick.x + brick.width / 2, brick.y + brick.height / 2);
               newBricks.splice(i, 1);
-              const bonusPoints = 50;
+              const bonusPoints = 50 * brick.initialStrength;
               setScore(s => s + bonusPoints);
               addFloatingScore(bonusPoints, brick.x + brick.width / 2, brick.y - 10);
             }
@@ -315,8 +358,7 @@ const PhysikBreakGame = () => {
         return remainingPowerups;
       });
 
-
-      return { ...b, x, y, vx, vy, isStuck };
+      return { ...b, x, y, vx, vy, speed, isStuck };
     });
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -331,10 +373,14 @@ const PhysikBreakGame = () => {
     ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
     // Draw paddle
-    ctx.fillStyle = 'hsl(var(--accent))';
+    ctx.fillStyle = paddle.isFrozen ? 'hsl(var(--secondary))' : 'hsl(var(--accent))';
     if (paddle.isSticky) {
         ctx.shadowBlur = 20;
         ctx.shadowColor = 'hsl(var(--primary))';
+    }
+    if (paddle.isFrozen) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = 'hsl(var(--secondary-foreground))';
     }
     ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     ctx.shadowBlur = 0;
@@ -349,9 +395,17 @@ const PhysikBreakGame = () => {
     
     // Draw bricks
     bricks.forEach(brick => {
+      ctx.globalAlpha = Math.max(0.2, brick.strength / brick.initialStrength);
       ctx.fillStyle = brick.color;
-      ctx.globalAlpha = brick.strength / brick.initialStrength;
       ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+      
+      if (brick.strength > 1) {
+          ctx.fillStyle = "white";
+          ctx.font = 'bold 12px "Space Grotesk"';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(brick.strength.toString(), brick.x + brick.width / 2, brick.y + brick.height / 2);
+      }
       ctx.globalAlpha = 1.0;
     });
 
@@ -378,13 +432,22 @@ const PhysikBreakGame = () => {
 
     // Draw power-ups
     powerUps.forEach(p => {
-        ctx.fillStyle = 'hsl(var(--primary))';
+        const isPowerDown = p.type === 'PADDLE_SHRINK' || p.type === 'PADDLE_FREEZE';
+        ctx.fillStyle = isPowerDown ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
+        
         ctx.fillRect(p.x, p.y, p.width, p.height);
-        ctx.fillStyle = 'hsl(var(--primary-foreground))';
+        ctx.fillStyle = isPowerDown ? 'hsl(var(--destructive-foreground))' : 'hsl(var(--primary-foreground))';
         ctx.font = 'bold 12px "Space Grotesk"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const powerUpText = p.type === 'PADDLE_EXPAND' ? 'E' : 'S';
+        let powerUpText = '';
+        switch(p.type) {
+            case 'PADDLE_EXPAND': powerUpText = 'E'; break;
+            case 'STICKY_PADDLE': powerUpText = 'S'; break;
+            case 'FAST_BALL': powerUpText = 'F'; break;
+            case 'PADDLE_SHRINK': powerUpText = 'P'; break;
+            case 'PADDLE_FREEZE': powerUpText = 'ICE'; break;
+        }
         ctx.fillText(powerUpText, p.x + p.width / 2, p.y + p.height / 2);
     });
 
@@ -430,7 +493,7 @@ const PhysikBreakGame = () => {
   
   return (
     <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
-        <div style={{width: dimensions.width, height: dimensions.height}} className="relative bg-transparent shadow-2xl">
+        <div style={{width: dimensions.width, height: dimensions.height}} className={cn("relative shadow-2xl", gameState === 'LOADING' || gameState === 'START_SCREEN' ? 'bg-transparent' : 'bg-background/80')}>
             <canvas
                 ref={canvasRef}
                 width={dimensions.width}

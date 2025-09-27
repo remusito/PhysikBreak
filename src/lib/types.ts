@@ -24,6 +24,7 @@ export interface Paddle {
   height: number;
   y: number;
   isSticky?: boolean;
+  isFrozen?: boolean;
 }
 
 export interface Particle {
@@ -44,7 +45,7 @@ export interface FloatingScore {
   vy: number;
 }
 
-export type PowerUpType = 'PADDLE_EXPAND' | 'STICKY_PADDLE';
+export type PowerUpType = 'PADDLE_EXPAND' | 'STICKY_PADDLE' | 'FAST_BALL' | 'PADDLE_SHRINK' | 'PADDLE_FREEZE';
 
 export interface PowerUp {
   x: number;
