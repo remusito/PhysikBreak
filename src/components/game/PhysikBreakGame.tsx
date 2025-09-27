@@ -66,7 +66,7 @@ const PhysikBreakGame = () => {
         setBall(prev => ({
             ...prev,
             isStuck: false,
-            vx: (Math.random() - 0.5) * 2 * (prev.speed / ballSpeedRef.current),
+            vx: (Math.random() - 0.5) * 2 * prev.speed,
             vy: -prev.speed
         }));
     }
@@ -230,13 +230,17 @@ const PhysikBreakGame = () => {
     if (!ball.isStuck) {
         const currentSpeed = ballSpeedRef.current;
         const currentVelocityMagnitude = Math.sqrt(ball.vx**2 + ball.vy**2);
+        
+        let newVx = ball.vx;
+        let newVy = ball.vy;
+
         // Normalize and apply current speed, preserving direction
-        if (currentVelocityMagnitude > 0) {
+        if (currentVelocityMagnitude > 0 && currentVelocityMagnitude !== currentSpeed) {
             const factor = currentSpeed / currentVelocityMagnitude;
-            setBall(b => ({ ...b, x: b.x + b.vx * factor, y: b.y + b.vy * factor }));
-        } else {
-             setBall(b => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }));
+            newVx *= factor;
+            newVy *= factor;
         }
+        setBall(b => ({ ...b, x: b.x + newVx, y: b.y + newVy, vx: newVx, vy: newVy }));
     }
 
     setParticles(particles =>
@@ -278,7 +282,7 @@ const PhysikBreakGame = () => {
           resetBallAndPaddle();
           setGameState('START_SCREEN');
         }
-        return { ...b, x, y, vx, vy, speed, isStuck };
+        return { ...b, x, y, vx, vy, isStuck };
       }
 
       // Paddle collision
@@ -358,11 +362,11 @@ const PhysikBreakGame = () => {
         return remainingPowerups;
       });
 
-      return { ...b, x, y, vx, vy, speed, isStuck };
+      return { ...b, x, y, vx, vy, isStuck };
     });
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [gameState, dimensions, paddle, lives, resetBallAndPaddle, ball.isStuck]);
+  }, [gameState, dimensions, paddle, lives, resetBallAndPaddle, ball.isStuck, ball.vx, ball.vy]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -493,7 +497,7 @@ const PhysikBreakGame = () => {
   
   return (
     <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
-        <div style={{width: dimensions.width, height: dimensions.height}} className={cn("relative shadow-2xl", gameState === 'LOADING' || gameState === 'START_SCREEN' ? 'bg-transparent' : 'bg-background/80')}>
+        <div style={{width: dimensions.width, height: dimensions.height}} className="relative shadow-2xl bg-transparent">
             <canvas
                 ref={canvasRef}
                 width={dimensions.width}
@@ -516,3 +520,5 @@ const PhysikBreakGame = () => {
 };
 
 export default PhysikBreakGame;
+
+    
