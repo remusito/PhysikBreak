@@ -15,6 +15,7 @@ export interface Ball {
   vx: number;
   vy: number;
   speed: number;
+  isStuck?: boolean;
 }
 
 export interface Paddle {
@@ -22,6 +23,7 @@ export interface Paddle {
   width: number;
   height: number;
   y: number;
+  isSticky?: boolean;
 }
 
 export interface Particle {
@@ -41,5 +43,17 @@ export interface FloatingScore {
   alpha: number;
   vy: number;
 }
+
+export type PowerUpType = 'PADDLE_EXPAND' | 'STICKY_PADDLE';
+
+export interface PowerUp {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: PowerUpType;
+  vy: number;
+}
+
 
 export type GameState = 'START_SCREEN' | 'PLAYING' | 'LEVEL_COMPLETE' | 'GAME_OVER' | 'LOADING';

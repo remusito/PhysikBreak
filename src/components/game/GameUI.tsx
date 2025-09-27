@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GameState } from '@/lib/types';
 import { Loader2, Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface GameUIProps {
   gameState: GameState;
@@ -12,9 +13,10 @@ interface GameUIProps {
   onStart: () => void;
   onNextLevel: () => void;
   onRestart: () => void;
+  scoreGlow: boolean;
 }
 
-const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart, onNextLevel, onRestart }) => {
+const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart, onNextLevel, onRestart, scoreGlow }) => {
   const renderLives = () => {
     return Array.from({ length: lives }).map((_, i) => (
       <Heart key={i} className="inline-block h-6 w-6 text-primary fill-current" />
@@ -44,7 +46,7 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-2xl font-bold">Level {level}</p>
-                    <Button onClick={onStart} size="lg" className="w-full font-bold text-lg">Tap to Start</Button>
+                    <div className="text-lg">Click to Launch</div>
                 </CardContent>
             </Card>
           </Overlay>
@@ -85,8 +87,8 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart
 
   return (
     <div className="absolute inset-0 pointer-events-none">
-      <header className="p-4 flex justify-between items-center text-foreground font-headline text-2xl">
-        <div>Score: {score}</div>
+       <header className="p-4 flex justify-between items-center text-foreground font-headline text-2xl">
+        <div className={cn("transition-all duration-300", scoreGlow && "text-primary scale-110 drop-shadow-[0_0_8px_hsl(var(--primary))]")}>Score: {score}</div>
         <div className="flex items-center gap-2">{renderLives()}</div>
         <div className="font-bold text-primary-foreground" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Lvl: {level}</div>
       </header>
