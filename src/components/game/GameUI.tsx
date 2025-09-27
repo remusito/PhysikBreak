@@ -88,7 +88,7 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart
       <header className="p-4 flex justify-between items-center text-foreground font-headline text-2xl">
         <div>Score: {score}</div>
         <div className="flex items-center gap-2">{renderLives()}</div>
-        <div>Lvl: {level}</div>
+        <div className="font-bold text-primary-foreground" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Lvl: {level}</div>
       </header>
       {renderContent()}
     </div>

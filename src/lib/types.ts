@@ -34,4 +34,12 @@ export interface Particle {
   color: string;
 }
 
+export interface FloatingScore {
+  x: number;
+  y: number;
+  value: number;
+  alpha: number;
+  vy: number;
+}
+
 export type GameState = 'START_SCREEN' | 'PLAYING' | 'LEVEL_COMPLETE' | 'GAME_OVER' | 'LOADING';

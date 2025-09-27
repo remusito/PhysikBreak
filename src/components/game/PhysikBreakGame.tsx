@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { getBrickLayout } from '@/app/actions';
-import type { Ball, Paddle, Brick, GameState, Particle } from '@/lib/types';
+import type { Ball, Paddle, Brick, GameState, Particle, FloatingScore } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import GameUI from './GameUI';
 
@@ -26,6 +26,7 @@ const PhysikBreakGame = () => {
   const [ball, setBall] = useState<Ball>({ x: 0, y: 0, radius: 0, vx: 0, vy: 0, speed: 0 });
   const [paddle, setPaddle] = useState<Paddle>({ x: 0, y: 0, width: 0, height: 0 });
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [floatingScores, setFloatingScores] = useState<FloatingScore[]>([]);
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
@@ -129,6 +130,10 @@ const PhysikBreakGame = () => {
     setParticles(prev => [...prev, ...newParticles]);
   };
 
+  const addFloatingScore = (value: number, x: number, y: number) => {
+    setFloatingScores(prev => [...prev, { x, y, value, alpha: 1, vy: -1 }]);
+  };
+
   const gameLoop = useCallback(() => {
     if (gameState !== 'PLAYING') return;
 
@@ -144,6 +149,14 @@ const PhysikBreakGame = () => {
           alpha: p.alpha - 0.02,
         }))
         .filter(p => p.alpha > 0)
+    );
+
+    setFloatingScores(scores => 
+        scores.map(fs => ({
+            ...fs,
+            y: fs.y + fs.vy,
+            alpha: fs.alpha - 0.02
+        })).filter(fs => fs.alpha > 0)
     );
 
     setBall(b => {
@@ -183,12 +196,16 @@ const PhysikBreakGame = () => {
           if (x > brick.x && x < brick.x + brick.width && y > brick.y && y < brick.y + brick.height) {
             vy = -vy;
             brick.strength -= 1;
-            setScore(s => s + 10);
+            const points = 10;
+            setScore(s => s + points);
+            addFloatingScore(points, brick.x + brick.width / 2, brick.y + brick.height / 2);
             
             if (brick.strength <= 0) {
               createExplosion(brick);
               newBricks.splice(i, 1);
-              setScore(s => s + 50);
+              const bonusPoints = 50;
+              setScore(s => s + bonusPoints);
+              addFloatingScore(bonusPoints, brick.x + brick.width / 2, brick.y - 10);
             }
             break;
           }
@@ -244,8 +261,18 @@ const PhysikBreakGame = () => {
     });
     ctx.globalAlpha = 1.0;
 
+    // Draw floating scores
+    floatingScores.forEach(fs => {
+        ctx.globalAlpha = fs.alpha;
+        ctx.fillStyle = 'hsl(var(--primary-foreground))';
+        ctx.font = 'bold 20px "Space Grotesk"';
+        ctx.textAlign = 'center';
+        ctx.fillText(fs.value.toString(), fs.x, fs.y);
+    });
+    ctx.globalAlpha = 1.0;
 
-  }, [ball, paddle, bricks, particles, dimensions]);
+
+  }, [ball, paddle, bricks, particles, floatingScores, dimensions]);
 
   useEffect(() => {
     if (gameState === 'PLAYING') {
