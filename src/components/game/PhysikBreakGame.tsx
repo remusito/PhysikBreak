@@ -12,7 +12,7 @@ const PADDLE_SENSITIVITY = 1.5;
 const INITIAL_LIVES = 3;
 const BASE_BALL_SPEED = 7;
 const POWER_UP_SPEED = 2;
-const POWER_UP_CHANCE = 0.3; // 30% chance
+const POWER_UP_CHANCE = 0.1; // 10% chance
 
 const PhysikBreakGame = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -645,5 +645,6 @@ const PhysikBreakGame = () => {
 
 export default PhysikBreakGame;
 
+    
     
     

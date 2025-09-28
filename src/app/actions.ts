@@ -44,7 +44,12 @@ export async function getBrickLayout(level: number, gameWidth: number, gameHeigh
         throw new Error("AI returned empty layout");
     }
 
-    return layout;
+    const bricksWithInitialStrength = layout.bricks.map(brick => ({
+        ...brick,
+        initialStrength: brick.strength,
+    }));
+
+    return { bricks: bricksWithInitialStrength };
   } catch (error) {
     console.error(`AI brick generation failed for level ${level}:`, error);
     console.log("Using fallback layout.");
@@ -52,3 +57,5 @@ export async function getBrickLayout(level: number, gameWidth: number, gameHeigh
     return { bricks: fallbackBricks };
   }
 }
+
+    
