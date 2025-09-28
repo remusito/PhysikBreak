@@ -37,11 +37,12 @@ const PhysikBreakGame = () => {
 
   const paddleWidthRef = useRef(dimensions.width / 6);
   const ballSpeedRef = useRef(BASE_BALL_SPEED);
+  const userInteractedRef = useRef(false);
 
-  const [playBrickHit] = useSound('/sounds/brick-hit.mp3', { volume: 0.5, isMuted });
-  const [playPaddleHit] = useSound('/sounds/paddle-hit.mp3', { volume: 0.5, isMuted });
-  const [playLoseLife] = useSound('/sounds/lose-life.mp3', { volume: 0.5, isMuted });
-  const [playLevelComplete] = useSound('/sounds/level-complete.mp3', { volume: 0.5, isMuted });
+  const [playBrickHit] = useSound('/sounds/brick-hit.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
+  const [playPaddleHit] = useSound('/sounds/paddle-hit.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
+  const [playLoseLife] = useSound('/sounds/lose-life.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
+  const [playLevelComplete] = useSound('/sounds/level-complete.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
@@ -75,6 +76,9 @@ const PhysikBreakGame = () => {
   
   const launchBall = () => {
     if (ball.isStuck) {
+        if (!userInteractedRef.current) {
+          userInteractedRef.current = true;
+        }
         setBall(prev => ({
             ...prev,
             isStuck: false,
@@ -125,6 +129,10 @@ const PhysikBreakGame = () => {
 
   const handleInteraction = (clientX: number) => {
     if (gameState !== 'PLAYING' && gameState !== 'START_SCREEN' || !containerRef.current || paddle.isFrozen) return;
+    
+    if (!userInteractedRef.current) {
+      userInteractedRef.current = true;
+    }
     
     // Adjust for the game canvas's position within the container
     const containerRect = containerRef.current.getBoundingClientRect();
@@ -603,6 +611,9 @@ const PhysikBreakGame = () => {
   };
   
   const toggleMute = () => {
+    if (!userInteractedRef.current) {
+        userInteractedRef.current = true;
+    }
     setIsMuted(current => !current);
   }
 
@@ -633,3 +644,5 @@ const PhysikBreakGame = () => {
 };
 
 export default PhysikBreakGame;
+
+    
