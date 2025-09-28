@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GameState } from '@/lib/types';
-import { Loader2, Heart } from 'lucide-react';
+import { Loader2, Heart, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GameUIProps {
@@ -10,13 +10,15 @@ interface GameUIProps {
   score: number;
   level: number;
   lives: number;
+  isMuted: boolean;
   onStart: () => void;
   onNextLevel: () => void;
   onRestart: () => void;
+  onToggleMute: () => void;
   scoreGlow: boolean;
 }
 
-const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart, onNextLevel, onRestart, scoreGlow }) => {
+const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, isMuted, onStart, onNextLevel, onRestart, onToggleMute, scoreGlow }) => {
   const renderLives = () => {
     return Array.from({ length: lives }).map((_, i) => (
       <Heart key={i} className="inline-block h-5 w-5 sm:h-6 sm:w-6 text-primary fill-current" />
@@ -24,7 +26,7 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart
   };
     
   const Overlay: React.FC<{children: React.ReactNode}> = ({ children }) => (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-transparent">
+    <div className="absolute inset-0 z-20 flex items-center justify-center bg-transparent pointer-events-auto">
         {children}
     </div>
   );
@@ -86,11 +88,18 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, score, level, lives, onStart
   };
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
-       <header className="p-2 sm:p-4 flex justify-between items-center text-foreground font-headline text-xl sm:text-2xl">
+    <div className="absolute inset-0 z-10 pointer-events-none">
+       <header className="p-2 sm:p-4 flex justify-between items-start text-foreground font-headline text-xl sm:text-2xl">
         <div className={cn("transition-all duration-300", scoreGlow && "text-primary scale-110 drop-shadow-[0_0_8px_hsl(var(--primary))]")}>Score: {score}</div>
-        <div className="flex items-center gap-1 sm:gap-2">{renderLives()}</div>
-        <div className="font-bold text-primary-foreground" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Lvl: {level}</div>
+        <div className="text-center">
+            <div className="font-bold text-primary-foreground" style={{ WebkitTextStroke: '1px hsl(var(--primary))', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Lvl: {level}</div>
+        </div>
+        <div className="flex items-center gap-1 sm:gap-2">
+            <button onClick={onToggleMute} className="pointer-events-auto text-primary focus:outline-none">
+                {isMuted ? <VolumeX className="h-5 w-5 sm:h-6 sm:w-6" /> : <Volume2 className="h-5 w-5 sm:h-6 sm:w-6" />}
+            </button>
+            {renderLives()}
+        </div>
       </header>
       {renderContent()}
     </div>

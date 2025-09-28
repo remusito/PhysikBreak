@@ -6,6 +6,7 @@ import type { Ball, Paddle, Brick, GameState, Particle, FloatingScore, PowerUp, 
 import { useToast } from '@/hooks/use-toast';
 import GameUI from './GameUI';
 import { cn } from '@/lib/utils';
+import { useSound } from '@/hooks/use-sound';
 
 const PADDLE_SENSITIVITY = 1.5;
 const INITIAL_LIVES = 3;
@@ -25,6 +26,7 @@ const PhysikBreakGame = () => {
   const [level, setLevel] = useState(1);
   const [lives, setLives] = useState(INITIAL_LIVES);
   const [scoreGlow, setScoreGlow] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const [bricks, setBricks] = useState<Brick[]>([]);
   const [ball, setBall] = useState<Ball>({ x: 0, y: 0, radius: 0, vx: 0, vy: 0, speed: 0 });
@@ -36,6 +38,11 @@ const PhysikBreakGame = () => {
   const paddleWidthRef = useRef(dimensions.width / 6);
   const ballSpeedRef = useRef(BASE_BALL_SPEED);
 
+  const [playBrickHit] = useSound('/sounds/brick-hit.mp3', { volume: 0.5, isMuted });
+  const [playPaddleHit] = useSound('/sounds/paddle-hit.mp3', { volume: 0.5, isMuted });
+  const [playLoseLife] = useSound('/sounds/lose-life.mp3', { volume: 0.5, isMuted });
+  const [playLevelComplete] = useSound('/sounds/level-complete.mp3', { volume: 0.5, isMuted });
+
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
     
@@ -43,7 +50,8 @@ const PhysikBreakGame = () => {
     let baseHeight = dimensions.height;
 
     paddleWidthRef.current = baseWidth / 7;
-    ballSpeedRef.current = Math.min(BASE_BALL_SPEED, baseWidth / 150);
+    ballSpeedRef.current = Math.max(4, baseWidth / 150);
+
 
     const newPaddle = {
       width: paddleWidthRef.current,
@@ -100,17 +108,6 @@ const PhysikBreakGame = () => {
     const handleResize = () => {
         if (containerRef.current) {
             const { clientWidth, clientHeight } = containerRef.current;
-            const aspectRatio = 16 / 9;
-            let width, height;
-
-            if (clientWidth / clientHeight > aspectRatio) {
-                height = clientHeight;
-                width = height * aspectRatio;
-            } else {
-                width = clientWidth;
-                height = width / aspectRatio;
-            }
-             // Let's use the full available space
             setDimensions({ width: clientWidth, height: clientHeight });
         }
     };
@@ -253,11 +250,18 @@ const PhysikBreakGame = () => {
     // Ball movement
     if (!ball.isStuck) {
         setBall(b => {
-            const newVx = b.vx;
-            const newVy = b.vy;
-            let newX = b.x + newVx;
-            let newY = b.y + newVy;
-            return { ...b, x: newX, y: newY, vx: newVx, vy: newVy };
+            let { x, y, vx, vy, speed } = b;
+            
+            // Normalize velocity vector and apply speed
+            const magnitude = Math.sqrt(vx * vx + vy * vy);
+            if (magnitude > 0) {
+                vx = (vx / magnitude) * speed;
+                vy = (vy / magnitude) * speed;
+            }
+
+            const newX = x + vx;
+            const newY = y + vy;
+            return { ...b, x: newX, y: newY, vx, vy };
         });
     }
 
@@ -286,12 +290,6 @@ const PhysikBreakGame = () => {
       let { x, y, vx, vy, radius, isStuck } = b;
       let speed = ballSpeedRef.current;
 
-      const currentVelocityMagnitude = Math.sqrt(vx * vx + vy * vy);
-      if (currentVelocityMagnitude > 0 && !isStuck) {
-        vx = (vx / currentVelocityMagnitude) * speed;
-        vy = (vy / currentVelocityMagnitude) * speed;
-      }
-
 
       // Wall collision
       if (x + radius > dimensions.width || x - radius < 0) {
@@ -306,6 +304,7 @@ const PhysikBreakGame = () => {
 
       // Bottom wall (lose life)
       if (y + radius > dimensions.height) {
+        playLoseLife();
         setLives(l => l - 1);
         setPowerUps([]);
         if (lives - 1 <= 0) {
@@ -319,21 +318,21 @@ const PhysikBreakGame = () => {
 
       // Paddle collision
       if (y + radius > paddle.y && y - radius < paddle.y + paddle.height && x > paddle.x && x < paddle.x + paddle.width) {
+        playPaddleHit();
         if (paddle.isSticky) {
             isStuck = true;
             y = paddle.y - radius;
             vy = 0;
             vx = 0;
         } else {
-            vy = -vy; // simple bounce
-            y = paddle.y - radius;
-
             let collidePoint = x - (paddle.x + paddle.width / 2);
             let normalizedCollidePoint = collidePoint / (paddle.width / 2);
             let angle = normalizedCollidePoint * (Math.PI / 3);
             
             vx = speed * Math.sin(angle);
             vy = -speed * Math.cos(angle);
+            
+            y = paddle.y - radius; // Prevent sticking inside paddle
         }
       }
 
@@ -344,6 +343,7 @@ const PhysikBreakGame = () => {
           const brick = newBricks[i];
           if (!isStuck && x + radius > brick.x && x - radius < brick.x + brick.width && y + radius > brick.y && y - radius < brick.y + brick.height) {
             
+            playBrickHit();
             const prevBallX = x - vx;
             const prevBallY = y - vy;
 
@@ -371,6 +371,7 @@ const PhysikBreakGame = () => {
           }
         }
         if (newBricks.length === 0) {
+            playLevelComplete();
             setGameState('LEVEL_COMPLETE');
             setScore(s => s + 1000);
             setPowerUps([]);
@@ -400,7 +401,7 @@ const PhysikBreakGame = () => {
     });
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [gameState, dimensions, paddle, lives, resetBallAndPaddle, ball.isStuck, ball.vx, ball.vy]);
+  }, [gameState, dimensions, paddle, lives, resetBallAndPaddle, ball.isStuck, ball.vx, ball.vy, playBrickHit, playPaddleHit, playLoseLife, playLevelComplete]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -450,8 +451,11 @@ const PhysikBreakGame = () => {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fillStyle = 'hsl(var(--primary))';
+    ctx.shadowColor = 'hsl(var(--primary))';
+    ctx.shadowBlur = 10;
     ctx.fill();
     ctx.closePath();
+    ctx.shadowBlur = 0;
     
     // Draw bricks
     bricks.forEach(brick => {
@@ -598,6 +602,10 @@ const PhysikBreakGame = () => {
     loadLevel(1);
   };
   
+  const toggleMute = () => {
+    setIsMuted(current => !current);
+  }
+
   return (
     <div ref={containerRef} className="w-full h-full max-w-full max-h-full flex items-center justify-center">
         <div style={{width: dimensions.width, height: dimensions.height}} className="relative shadow-2xl bg-transparent">
@@ -605,16 +613,18 @@ const PhysikBreakGame = () => {
                 ref={canvasRef}
                 width={dimensions.width}
                 height={dimensions.height}
-                className="absolute top-0 left-0 cursor-pointer"
+                className="absolute top-0 left-0 z-0 cursor-pointer"
             />
             <GameUI
                 gameState={gameState}
                 score={score}
                 level={level}
                 lives={lives}
+                isMuted={isMuted}
                 onStart={startGame}
                 onNextLevel={advanceLevel}
                 onRestart={restartGame}
+                onToggleMute={toggleMute}
                 scoreGlow={scoreGlow}
             />
         </div>
@@ -623,5 +633,3 @@ const PhysikBreakGame = () => {
 };
 
 export default PhysikBreakGame;
-
-    
