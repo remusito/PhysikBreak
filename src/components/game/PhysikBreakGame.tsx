@@ -42,7 +42,7 @@ const PhysikBreakGame = () => {
     let baseWidth = dimensions.width;
     let baseHeight = dimensions.height;
 
-    paddleWidthRef.current = baseWidth / 6;
+    paddleWidthRef.current = baseWidth / 7;
     ballSpeedRef.current = Math.min(BASE_BALL_SPEED, baseWidth / 150);
 
     const newPaddle = {
@@ -70,8 +70,8 @@ const PhysikBreakGame = () => {
         setBall(prev => ({
             ...prev,
             isStuck: false,
-            vx: (Math.random() - 0.5) * 2 * prev.speed,
-            vy: -prev.speed
+            vy: -prev.speed,
+            vx: (Math.random() - 0.5) * 2 * (prev.speed / 1.5),
         }));
     }
   }
@@ -98,15 +98,27 @@ const PhysikBreakGame = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width, height });
-      }
+        if (containerRef.current) {
+            const { clientWidth, clientHeight } = containerRef.current;
+            const aspectRatio = 16 / 9;
+            let width, height;
+
+            if (clientWidth / clientHeight > aspectRatio) {
+                height = clientHeight;
+                width = height * aspectRatio;
+            } else {
+                width = clientWidth;
+                height = width / aspectRatio;
+            }
+             // Let's use the full available space
+            setDimensions({ width: clientWidth, height: clientHeight });
+        }
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+}, []);
+
 
   useEffect(() => {
     if(dimensions.width > 0){
@@ -140,8 +152,9 @@ const PhysikBreakGame = () => {
     const touchHandler = (e: TouchEvent) => handleInteraction(e.touches[0].clientX);
     const clickHandler = () => {
         if(gameState === 'START_SCREEN') {
-            startGame();
-        } else {
+            setGameState('PLAYING');
+            launchBall();
+        } else if (gameState === 'PLAYING') {
             launchBall();
         }
     };
@@ -239,19 +252,13 @@ const PhysikBreakGame = () => {
 
     // Ball movement
     if (!ball.isStuck) {
-        const currentSpeed = ballSpeedRef.current;
-        const currentVelocityMagnitude = Math.sqrt(ball.vx**2 + ball.vy**2);
-        
-        let newVx = ball.vx;
-        let newVy = ball.vy;
-
-        // Normalize and apply current speed, preserving direction
-        if (currentVelocityMagnitude > 0 && currentVelocityMagnitude !== currentSpeed) {
-            const factor = currentSpeed / currentVelocityMagnitude;
-            newVx *= factor;
-            newVy *= factor;
-        }
-        setBall(b => ({ ...b, x: b.x + newVx, y: b.y + newVy, vx: newVx, vy: newVy }));
+        setBall(b => {
+            const newVx = b.vx;
+            const newVy = b.vy;
+            let newX = b.x + newVx;
+            let newY = b.y + newVy;
+            return { ...b, x: newX, y: newY, vx: newVx, vy: newVy };
+        });
     }
 
     setParticles(particles =>
@@ -279,9 +286,23 @@ const PhysikBreakGame = () => {
       let { x, y, vx, vy, radius, isStuck } = b;
       let speed = ballSpeedRef.current;
 
+      const currentVelocityMagnitude = Math.sqrt(vx * vx + vy * vy);
+      if (currentVelocityMagnitude > 0 && !isStuck) {
+        vx = (vx / currentVelocityMagnitude) * speed;
+        vy = (vy / currentVelocityMagnitude) * speed;
+      }
+
+
       // Wall collision
-      if (x + radius > dimensions.width || x - radius < 0) vx = -vx;
-      if (y - radius < 0) vy = -vy;
+      if (x + radius > dimensions.width || x - radius < 0) {
+        vx = -vx;
+        if(x + radius > dimensions.width) x = dimensions.width - radius;
+        if(x - radius < 0) x = radius;
+      }
+      if (y - radius < 0) {
+        vy = -vy;
+        if(y-radius < 0) y = radius;
+      }
 
       // Bottom wall (lose life)
       if (y + radius > dimensions.height) {
@@ -304,12 +325,15 @@ const PhysikBreakGame = () => {
             vy = 0;
             vx = 0;
         } else {
+            vy = -vy; // simple bounce
+            y = paddle.y - radius;
+
             let collidePoint = x - (paddle.x + paddle.width / 2);
-            collidePoint = collidePoint / (paddle.width / 2);
-            let angle = collidePoint * (Math.PI / 3);
+            let normalizedCollidePoint = collidePoint / (paddle.width / 2);
+            let angle = normalizedCollidePoint * (Math.PI / 3);
+            
             vx = speed * Math.sin(angle);
             vy = -speed * Math.cos(angle);
-            y = paddle.y - radius;
         }
       }
 
@@ -320,14 +344,13 @@ const PhysikBreakGame = () => {
           const brick = newBricks[i];
           if (!isStuck && x + radius > brick.x && x - radius < brick.x + brick.width && y + radius > brick.y && y - radius < brick.y + brick.height) {
             
-            // simple collision detection, checking which side we hit
-            const overlapX = (x < brick.x + brick.width / 2) ? (x + radius - brick.x) : (brick.x + brick.width - (x - radius));
-            const overlapY = (y < brick.y + brick.height / 2) ? (y + radius - brick.y) : (brick.y + brick.height - (y - radius));
+            const prevBallX = x - vx;
+            const prevBallY = y - vy;
 
-            if (overlapX < overlapY) {
-                vx = -vx;
+            if (prevBallX + radius <= brick.x || prevBallX - radius >= brick.x + brick.width) {
+              vx = -vx;
             } else {
-                vy = -vy;
+              vy = -vy;
             }
             
             brick.strength -= 1;
@@ -388,7 +411,8 @@ const PhysikBreakGame = () => {
     ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
     // Draw paddle
-    ctx.fillStyle = paddle.isFrozen ? 'hsl(var(--secondary))' : 'hsl(var(--accent))';
+    const paddleColor = paddle.isFrozen ? 'hsl(var(--secondary))' : 'hsl(var(--accent))';
+    ctx.fillStyle = paddleColor;
     if (paddle.isSticky) {
         ctx.shadowBlur = 20;
         ctx.shadowColor = 'hsl(var(--primary))';
@@ -397,7 +421,28 @@ const PhysikBreakGame = () => {
         ctx.shadowBlur = 20;
         ctx.shadowColor = 'hsl(var(--secondary-foreground))';
     }
-    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+    const cornerRadius = 10;
+    ctx.beginPath();
+    ctx.moveTo(paddle.x + cornerRadius, paddle.y);
+    ctx.lineTo(paddle.x + paddle.width - cornerRadius, paddle.y);
+    ctx.quadraticCurveTo(paddle.x + paddle.width, paddle.y, paddle.x + paddle.width, paddle.y + cornerRadius);
+    ctx.lineTo(paddle.x + paddle.width, paddle.y + paddle.height - cornerRadius);
+    ctx.quadraticCurveTo(paddle.x + paddle.width, paddle.y + paddle.height, paddle.x + paddle.width - cornerRadius, paddle.y + paddle.height);
+    ctx.lineTo(paddle.x + cornerRadius, paddle.y + paddle.height);
+    ctx.quadraticCurveTo(paddle.x, paddle.y + paddle.height, paddle.x, paddle.y + paddle.height - cornerRadius);
+    ctx.lineTo(paddle.x, paddle.y + cornerRadius);
+    ctx.quadraticCurveTo(paddle.x, paddle.y, paddle.x + cornerRadius, paddle.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Add a 3D effect / highlight
+    const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
+    gradient.addColorStop(0, "rgba(255, 255, 255, 0.4)");
+    gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.1)");
+    gradient.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
     ctx.shadowBlur = 0;
 
 
@@ -578,3 +623,5 @@ const PhysikBreakGame = () => {
 };
 
 export default PhysikBreakGame;
+
+    
