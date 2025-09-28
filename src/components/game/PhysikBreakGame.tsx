@@ -10,7 +10,7 @@ import { useSound } from '@/hooks/use-sound';
 
 const PADDLE_SENSITIVITY = 1.5;
 const INITIAL_LIVES = 3;
-const BASE_BALL_SPEED = 5;
+const BASE_BALL_SPEED = 7;
 const POWER_UP_SPEED = 2;
 const POWER_UP_CHANCE = 0.3; // 30% chance
 
@@ -51,7 +51,7 @@ const PhysikBreakGame = () => {
     let baseHeight = dimensions.height;
 
     paddleWidthRef.current = baseWidth / 7;
-    ballSpeedRef.current = Math.max(4, baseWidth / 150);
+    ballSpeedRef.current = Math.max(BASE_BALL_SPEED, baseWidth / 150);
 
 
     const newPaddle = {
@@ -645,4 +645,5 @@ const PhysikBreakGame = () => {
 
 export default PhysikBreakGame;
 
+    
     
