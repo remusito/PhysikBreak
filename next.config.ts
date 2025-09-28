@@ -6,16 +6,13 @@ let assetPrefix = ''
 let basePath = ''
 
 if (isGithubActions) {
-  // trim off trailing slash
   const repo = process.env.GITHUB_REPOSITORY!.replace(/.*?\//, '')
-
   assetPrefix = `/${repo}/`
   basePath = `/${repo}`
 }
 
 
 const nextConfig: NextConfig = {
-  /* config options here */
   output: 'export',
   assetPrefix: assetPrefix,
   basePath: basePath,

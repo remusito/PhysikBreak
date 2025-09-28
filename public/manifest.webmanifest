@@ -1,21 +1,22 @@
 {
   "name": "PhysikBreak",
   "short_name": "PhysikBreak",
-  "description": "An Arkanoid-style game with realistic physics and AI-generated levels.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#121d26",
-  "theme_color": "#29ABE2",
+  "description": "Un moderno remake del clásico juego Arkanoid, construido con tecnologías web de vanguardia.",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#194674",
+  "background_color": "#eaf5fc",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait"
 }
