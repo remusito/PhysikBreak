@@ -1,8 +1,0 @@
-{
-  "build": {
-    "env": {
-      "NPM_FLAGS": "--prefix=."
-    }
-  },
-  "redirects": []
-}
