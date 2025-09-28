@@ -39,10 +39,19 @@ const PhysikBreakGame = () => {
   const ballSpeedRef = useRef(BASE_BALL_SPEED);
   const userInteractedRef = useRef(false);
 
-  const [playBrickHit] = useSound('/sounds/brick-hit.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
-  const [playPaddleHit] = useSound('/sounds/paddle-hit.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
-  const [playLoseLife] = useSound('/sounds/lose-life.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
-  const [playLevelComplete] = useSound('/sounds/level-complete.mp3', { volume: 0.5, isMuted, enabled: userInteractedRef.current });
+  const [playBrickHit, setBrickHitEnabled] = useSound('/sounds/brick-hit.mp3', { volume: 0.5, isMuted });
+  const [playPaddleHit, setPaddleHitEnabled] = useSound('/sounds/paddle-hit.mp3', { volume: 0.5, isMuted });
+  const [playLoseLife, setLoseLifeEnabled] = useSound('/sounds/lose-life.mp3', { volume: 0.5, isMuted });
+  const [playLevelComplete, setLevelCompleteEnabled] = useSound('/sounds/level-complete.mp3', { volume: 0.5, isMuted });
+
+
+  useEffect(() => {
+    const enabled = userInteractedRef.current;
+    setBrickHitEnabled(enabled);
+    setPaddleHitEnabled(enabled);
+    setLoseLifeEnabled(enabled);
+    setLevelCompleteEnabled(enabled);
+  }, [userInteractedRef.current, setBrickHitEnabled, setPaddleHitEnabled, setLoseLifeEnabled, setLevelCompleteEnabled]);
 
   const resetBallAndPaddle = useCallback(() => {
     if (dimensions.width === 0) return;
@@ -112,17 +121,7 @@ const PhysikBreakGame = () => {
     const handleResize = () => {
         if (containerRef.current) {
             const { clientWidth, clientHeight } = containerRef.current;
-            const aspectRatio = 16 / 9;
-            let width, height;
-
-            if (clientWidth / clientHeight > aspectRatio) {
-                height = clientHeight;
-                width = height * aspectRatio;
-            } else {
-                width = clientWidth;
-                height = width / aspectRatio;
-            }
-            setDimensions({ width, height });
+            setDimensions({ width: clientWidth, height: clientHeight });
         }
     };
     handleResize();
@@ -268,18 +267,18 @@ const PhysikBreakGame = () => {
     // Ball movement
     if (!ball.isStuck) {
         setBall(b => {
-            let { x, y, vx, vy, speed } = b;
-            
-            // Normalize velocity vector and apply speed
-            const magnitude = Math.sqrt(vx * vx + vy * vy);
-            if (magnitude > 0) {
-                vx = (vx / magnitude) * speed;
-                vy = (vy / magnitude) * speed;
+            const magnitude = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            let finalVx = b.vx;
+            let finalVy = b.vy;
+
+            if (magnitude > 0 && magnitude !== b.speed) {
+              finalVx = (b.vx / magnitude) * b.speed;
+              finalVy = (b.vy / magnitude) * b.speed;
             }
 
-            const newX = x + vx;
-            const newY = y + vy;
-            return { ...b, x: newX, y: newY, vx, vy };
+            const newX = b.x + finalVx;
+            const newY = b.y + finalVy;
+            return { ...b, x: newX, y: newY, vx: finalVx, vy: finalVy };
         });
     }
 
@@ -345,11 +344,16 @@ const PhysikBreakGame = () => {
         } else {
             let collidePoint = x - (paddle.x + paddle.width / 2);
             let normalizedCollidePoint = collidePoint / (paddle.width / 2);
-            let angle = normalizedCollidePoint * (Math.PI / 3);
+            let angle = normalizedCollidePoint * (Math.PI / 3); // Max bounce angle: 60 degrees
             
-            vx = speed * Math.sin(angle);
-            vy = -speed * Math.cos(angle);
-            
+            let newVx = speed * Math.sin(angle);
+            let newVy = -speed * Math.cos(angle);
+
+            // Ensure the ball maintains its speed
+            const magnitude = Math.sqrt(newVx * newVx + newVy * newVy);
+            vx = (newVx / magnitude) * speed;
+            vy = (newVy / magnitude) * speed;
+
             y = paddle.y - radius; // Prevent sticking inside paddle
         }
       }
@@ -658,3 +662,4 @@ export default PhysikBreakGame;
     
     
     
+
