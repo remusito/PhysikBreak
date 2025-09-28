@@ -12,7 +12,7 @@ const PADDLE_SENSITIVITY = 1.5;
 const INITIAL_LIVES = 3;
 const BASE_BALL_SPEED = 7;
 const POWER_UP_SPEED = 2;
-const POWER_UP_CHANCE = 0.1; // 10% chance
+const POWER_UP_CHANCE = 0.1;
 
 const PhysikBreakGame = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,17 @@ const PhysikBreakGame = () => {
     const handleResize = () => {
         if (containerRef.current) {
             const { clientWidth, clientHeight } = containerRef.current;
-            setDimensions({ width: clientWidth, height: clientHeight });
+            const aspectRatio = 16 / 9;
+            let width, height;
+
+            if (clientWidth / clientHeight > aspectRatio) {
+                height = clientHeight;
+                width = height * aspectRatio;
+            } else {
+                width = clientWidth;
+                height = width / aspectRatio;
+            }
+            setDimensions({ width, height });
         }
     };
     handleResize();

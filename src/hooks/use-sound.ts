@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface SoundOptions {
   volume?: number;
@@ -12,44 +12,36 @@ export function useSound(
   soundUrl: string,
   { volume = 1, isMuted = false, enabled = true }: SoundOptions = {}
 ): [() => void] {
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if(enabled) {
-        const newAudio = new Audio(soundUrl);
-        newAudio.load();
-        setAudio(newAudio);
-
-        return () => {
-            newAudio.pause();
-        };
+    if (enabled && !audioRef.current) {
+      const newAudio = new Audio(soundUrl);
+      newAudio.load();
+      audioRef.current = newAudio;
     }
   }, [soundUrl, enabled]);
 
   useEffect(() => {
-    if (audio) {
-      audio.volume = volume;
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
     }
-  }, [volume, audio]);
+  }, [volume]);
   
   useEffect(() => {
-    if (audio) {
-      audio.muted = isMuted;
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
     }
-  }, [isMuted, audio]);
-
+  }, [isMuted]);
 
   const play = useCallback(() => {
-    if (audio && !isMuted) {
-      audio.currentTime = 0;
-      audio.play().catch(error => {
-        // Autoplay was prevented.
-        console.warn("Sound autoplay was prevented for:", soundUrl);
+    if (audioRef.current && enabled && !isMuted) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(error => {
+        console.warn("Sound autoplay was prevented for:", soundUrl, error);
       });
     }
-  }, [audio, soundUrl, isMuted]);
+  }, [soundUrl, isMuted, enabled]);
 
   return [play];
 }
-
-    
